@@ -1,5 +1,4 @@
-# cddis-highrate-downloader
-# CDDIS High-Rate GNSS Data Downloader
+# cddis-highrate-downloader: CDDIS High-Rate GNSS Data Downloader
 
 A Python-based tool to easily bulk-download high-rate GNSS data from NASA's CDDIS archive. This tool supports downloading, extracting, and converting GNSS data files with various filtering options.
 
