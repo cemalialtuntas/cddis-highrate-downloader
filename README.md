@@ -95,6 +95,7 @@ Convert to RINEX (.rnx)? (y/N): y
 
 Downloaded and processed files are organized in the following structure:
 
+```bash
 downloads/
 └── [STATION_NAME]/
     └── [YEAR]/
@@ -103,6 +104,7 @@ downloads/
                 ├── original.crx.gz  # If not extracted
                 ├── original.crx     # If extracted
                 └── original.rnx     # If converted to RINEX
+```
 
 
 ## File Formats
