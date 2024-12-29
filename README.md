@@ -28,14 +28,17 @@ cd cddis-highrate-downloader
 ```
 
 2. Create and activate a virtual environment (recommended):
-```bash
 Windows
+```bash
 python -m venv venv
 venv\Scripts\activate
+```
 Linux/Mac
+```bash
 python -m venv venv
 source venv/bin/activate
 ```
+
 
 3. Install the package:
 ```bash
@@ -95,12 +98,12 @@ Downloaded and processed files are organized in the following structure:
 
 downloads/
 └── [STATION_NAME]/
-└── [YEAR]/
-└── [DOY]/
-└── [HOUR]/
-├── original.crx.gz # If not extracted
-├── original.crx # If extracted
-└── original.rnx # If converted to RINEX
+    └── [YEAR]/
+        └── [DOY]/
+            └── [HOUR]/
+                ├── original.crx.gz  # If not extracted
+                ├── original.crx     # If extracted
+                └── original.rnx     # If converted to RINEX
 
 
 ## File Formats
@@ -149,10 +152,11 @@ Cemali Altuntas (cemali@yildiz.edu.tr)
 
 If you use this tool in your research, please cite:
 
+```bibtex
 @software{cddis_highrate_downloader,
-author = {Altuntas, Cemali},
-title = {CDDIS High-Rate GNSS Data Downloader},
-year = {2024},
-url = {https://github.com/cemalialtuntas/cddis-highrate-downloader}
+    author = {Altuntas, Cemali},
+    title = {CDDIS High-Rate GNSS Data Downloader},
+    year = {2024},
+    url = {https://github.com/cemalialtuntas/cddis-highrate-downloader}
 }
 
