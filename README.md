@@ -174,7 +174,7 @@ If you use this tool in your research, please cite:
     author = {Altuntas, Cemali},
     title = {CDDIS High-Rate GNSS Data Downloader},
     version = {1.0.1},
-    year = {2024},
+    year = {2025},
     url = {https://github.com/cemalialtuntas/cddis-highrate-downloader}
 }
 ```
