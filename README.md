@@ -49,7 +49,7 @@ pip install -e .
 
 After installation, you can run the tool using the command:
 ```bash
-cddis-downloader
+cddis-download
 ```
 
 The tool will prompt you for the following information:
