@@ -42,43 +42,71 @@ class CDDISFTPClient:
     def list_crx_files(self, base_path: str, hour_subdir: str, 
                       station_filter: Optional[str] = None) -> List[str]:
         """Lists .crx.gz files in the specified hour directory."""
-        if not self.ftp:
-            return []
-            
-        try:
-            full_path = f"{base_path}/{hour_subdir}"
-            self.ftp.cwd(full_path)
-            files = []
-            self.ftp.retrlines('LIST', lambda x: files.append(x.split()[-1]))
-            
-            crx_files = [f for f in files if f.endswith('.crx.gz')]
-            if station_filter:
-                crx_files = [f for f in crx_files if f.startswith(station_filter)]
-            
-            return sorted(crx_files)
-        except Exception as e:
-            print(f"Error listing .crx.gz files: {e}")
-            return []
+        max_retries = 3  # Maksimum yeniden deneme sayısı
+        retry_count = 0
+        
+        while retry_count < max_retries:
+            if not self.ftp:
+                if not self.reconnect():
+                    return []
+                
+            try:
+                full_path = f"{base_path}/{hour_subdir}"
+                self.ftp.cwd(full_path)
+                files = []
+                self.ftp.retrlines('LIST', lambda x: files.append(x.split()[-1]))
+                
+                crx_files = [f for f in files if f.endswith('.crx.gz')]
+                if station_filter:
+                    crx_files = [f for f in crx_files if f.startswith(station_filter)]
+                
+                return sorted(crx_files)
+            except Exception as e:
+                print(f"Error listing .crx.gz files: {e}")
+                retry_count += 1
+                if retry_count < max_retries:
+                    print(f"Attempting to reconnect (attempt {retry_count + 1}/{max_retries})...")
+                    if not self.reconnect():
+                        print("Reconnection failed")
+                        return []
+                else:
+                    print("Max retries reached")
+                    return []
+        return []
 
     def download_file(self, base_path: str, hour_subdir: str, 
                      filename: str, local_path: str) -> bool:
         """Downloads a single file from FTP to local path."""
-        if not self.ftp:
-            return False
-            
-        try:
-            full_path = f"{base_path}/{hour_subdir}"
-            self.ftp.cwd(full_path)
-            
-            with open(local_path, 'wb') as fp:
-                self.ftp.retrbinary(f'RETR {filename}', fp.write)
-            print(f"Downloaded: {filename}")
-            return True
-        except Exception as e:
-            print(f"Error downloading {filename}: {e}")
-            if os.path.exists(local_path):
-                os.remove(local_path)
-            return False
+        max_retries = 3
+        retry_count = 0
+        
+        while retry_count < max_retries:
+            if not self.ftp:
+                if not self.reconnect():
+                    return False
+                
+            try:
+                full_path = f"{base_path}/{hour_subdir}"
+                self.ftp.cwd(full_path)
+                
+                with open(local_path, 'wb') as fp:
+                    self.ftp.retrbinary(f'RETR {filename}', fp.write)
+                print(f"Downloaded: {filename}")
+                return True
+            except Exception as e:
+                print(f"Error downloading {filename}: {e}")
+                if os.path.exists(local_path):
+                    os.remove(local_path)
+                retry_count += 1
+                if retry_count < max_retries:
+                    print(f"Attempting to reconnect (attempt {retry_count + 1}/{max_retries})...")
+                    if not self.reconnect():
+                        print("Reconnection failed")
+                        return False
+                else:
+                    print("Max retries reached")
+                    return False
+        return False
 
     def close(self):
         """Closes the FTP connection."""
@@ -130,6 +158,14 @@ class CDDISFTPClient:
                     
         except Exception as e:
             print(f"Error extracting/converting {file_path.name}: {e}")
+
+    def reconnect(self) -> bool:
+        """Attempts to reconnect to the FTP server."""
+        try:
+            self.close()  # Mevcut bağlantıyı kapat
+            return self.connect()  # Yeniden bağlan
+        except Exception:
+            return False
 
 def check_crx2rnx_availability() -> bool:
     """Checks if CRX2RNX is available for use."""
