@@ -11,7 +11,9 @@ A Python-based tool to easily bulk-download high-rate GNSS data from NASA's CDDI
 - Automatic file extraction (.gz)
 - Optional RINEX conversion (CRX to RNX)
 - Anonymous FTP access (no credentials needed)
-- Progress tracking and error handling
+- Smart file handling (skips already downloaded/converted files)
+- Robust connection handling with automatic retry mechanism
+- Progress tracking and detailed error reporting
 
 ## Prerequisites
 
@@ -38,7 +40,6 @@ python -m venv venv
 source venv/bin/activate
 ```
 
-
 3. Install the package:
 ```bash
 pip install -e .
@@ -50,7 +51,6 @@ After installation, you can run the tool using the command:
 ```bash
 cddis-downloader
 ```
-
 
 The tool will prompt you for the following information:
 
@@ -90,7 +90,6 @@ Extract downloaded files? (y/N): y
 Convert to RINEX (.rnx)? (y/N): y
 ```
 
-
 ## Output Structure
 
 Downloaded and processed files are organized in the following structure:
@@ -106,7 +105,6 @@ downloads/
                 └── original.rnx     # If converted to RINEX
 ```
 
-
 ## File Formats
 
 - `.gz`: Compressed files from CDDIS
@@ -117,11 +115,29 @@ downloads/
 
 The tool includes CRX2RNX.exe for Windows users. For other operating systems, ensure you have CRX2RNX installed and accessible in your system PATH.
 
+## Smart File Handling
+
+The tool now includes intelligent file handling features:
+- Skips downloading if RINEX (.rnx) file already exists
+- Skips downloading if CRX file already exists
+- Automatically retries failed downloads
+- Resumes interrupted downloads from the last successful point
+
+## Connection Handling
+
+Version 1.0.1 includes improved connection handling:
+- Automatic reconnection on connection loss
+- Multiple retry attempts with increasing delays
+- Timeout settings to prevent hanging connections
+- Passive mode support for better compatibility
+- Detailed connection status reporting
+
 ## Common Issues
 
 1. **FTP Connection Issues**:
    - Ensure you have internet connectivity
    - Check if CDDIS server is accessible
+   - The tool will automatically retry on connection failures
 
 2. **RINEX Conversion Errors**:
    - Verify CRX2RNX is properly installed
@@ -157,7 +173,9 @@ If you use this tool in your research, please cite:
 @software{cddis_highrate_downloader,
     author = {Altuntas, Cemali},
     title = {CDDIS High-Rate GNSS Data Downloader},
+    version = {1.0.1},
     year = {2024},
     url = {https://github.com/cemalialtuntas/cddis-highrate-downloader}
 }
+```
 
