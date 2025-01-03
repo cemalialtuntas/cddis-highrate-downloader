@@ -6,6 +6,7 @@ from ftplib import FTP_TLS
 from typing import List, Optional
 from pathlib import Path
 from .utils import check_crx2rnx, get_crx2rnx_path
+import time
 
 class CDDISFTPClient:
     """CDDIS FTP client for downloading GNSS data."""
@@ -16,12 +17,22 @@ class CDDISFTPClient:
     def connect(self) -> bool:
         """Establishes FTP connection to CDDIS server."""
         try:
+            if self.ftp:
+                try:
+                    self.ftp.quit()
+                except:
+                    pass
+                self.ftp = None
+                
             self.ftp = FTP_TLS('gdc.cddis.eosdis.nasa.gov')
+            self.ftp.connect(timeout=30)  # 30 saniyelik timeout ekleyelim
             self.ftp.login()  # anonymous login
             self.ftp.prot_p()  # Set up secure data connection
+            self.ftp.set_pasv(True)  # Pasif mod kullan
             return True
         except Exception as e:
             print(f"FTPS connection/login failed: {e}")
+            self.ftp = None
             return False
 
     def list_hour_subfolders(self, base_path: str) -> List[str]:
@@ -109,9 +120,14 @@ class CDDISFTPClient:
         return False
 
     def close(self):
-        """Closes the FTP connection."""
+        """Closes the FTP connection safely."""
         if self.ftp:
-            self.ftp.quit()
+            try:
+                self.ftp.quit()
+            except Exception as e:
+                print(f"Warning: Error while closing FTP connection: {e}")
+            finally:
+                self.ftp = None
 
     def extract_and_convert(self, file_path: str, convert_to_rnx: bool = False) -> None:
         """
@@ -161,11 +177,27 @@ class CDDISFTPClient:
 
     def reconnect(self) -> bool:
         """Attempts to reconnect to the FTP server."""
-        try:
-            self.close()  # Mevcut bağlantıyı kapat
-            return self.connect()  # Yeniden bağlan
-        except Exception:
-            return False
+        max_reconnect_attempts = 3
+        reconnect_delay = 5  # saniye
+        
+        for attempt in range(max_reconnect_attempts):
+            try:
+                print(f"Reconnection attempt {attempt + 1}/{max_reconnect_attempts}")
+                self.close()  # Mevcut bağlantıyı kapat
+                
+                if self.connect():  # Yeniden bağlan
+                    print("Successfully reconnected to FTP server")
+                    return True
+                    
+                print(f"Reconnection failed, waiting {reconnect_delay} seconds before next attempt...")
+                time.sleep(reconnect_delay)  # Yeniden denemeden önce bekle
+                reconnect_delay *= 2  # Her başarısız denemede bekleme süresini iki katına çıkar
+                
+            except Exception as e:
+                print(f"Reconnection error: {e}")
+                
+        print("All reconnection attempts failed")
+        return False
 
 def check_crx2rnx_availability() -> bool:
     """Checks if CRX2RNX is available for use."""
@@ -238,62 +270,105 @@ def main():
     if hour_input and not hour_list:  # Only fail if hour was provided but invalid
         return
 
-    # 2. Connect to FTP
-    client = CDDISFTPClient()
-    if not client.connect():
-        print("FTP connection failed. Exiting.")
-        return
-
     # Process each DOY
-    for doy in doy_list:
+    doy_index = 0
+    while doy_index < len(doy_list):
+        doy = doy_list[doy_index]
         print(f"\nProcessing DOY: {doy}")
         
-        # 3. Construct base path on FTP
-        base_path = f"/gnss/data/highrate/{year}/{doy}/{subfolder}"
-
-        # 4. List and validate available hours
-        available_hours = client.list_hour_subfolders(base_path)
-        if not available_hours:
-            print(f"No hour subfolders found in {base_path}")
+        # 3. Connect to FTP if needed
+        client = CDDISFTPClient()
+        if not client.connect():
+            print("FTP connection failed. Waiting 30 seconds before retry...")
+            time.sleep(30)
             continue
 
-        # 5. Filter hours based on user input
-        hour_folders = hour_list if hour_list else available_hours
-        valid_hours = [h for h in hour_folders if h in available_hours]
-        
-        if not valid_hours:
-            print(f"No valid hours found in available hours: {available_hours}")
-            continue
+        try:
+            # 4. Construct base path on FTP
+            base_path = f"/gnss/data/highrate/{year}/{doy}/{subfolder}"
 
-        # 6. Prepare download directory
-        station_folder = station if station else "ALLSTATIONS"
-        download_dir = os.path.join("downloads", station_folder, year, doy)
-        os.makedirs(download_dir, exist_ok=True)
-        
-        print(f"Processing hours: {valid_hours}")
-        print(f"Files will be saved to: {download_dir}\n")
-
-        # 7. Download files
-        for hour_subdir in valid_hours:
-            crx_files = client.list_crx_files(base_path, hour_subdir, 
-                                            station_filter=station if station else None)
-            if not crx_files:
-                print(f"No .crx.gz files found in {base_path}/{hour_subdir} "
-                      f"(filter={station or 'None'})")
+            # 5. List and validate available hours
+            available_hours = client.list_hour_subfolders(base_path)
+            if not available_hours:
+                print(f"No hour subfolders found in {base_path}")
+                doy_index += 1  # Move to next DOY
                 continue
 
-            local_hour_dir = os.path.join(download_dir, hour_subdir)
-            os.makedirs(local_hour_dir, exist_ok=True)
+            # 6. Filter hours based on user input
+            hour_folders = hour_list if hour_list else available_hours
+            valid_hours = [h for h in hour_folders if h in available_hours]
+            
+            if not valid_hours:
+                print(f"No valid hours found in available hours: {available_hours}")
+                doy_index += 1  # Move to next DOY
+                continue
 
-            for file_name in crx_files:
-                local_path = os.path.join(local_hour_dir, file_name)
-                if client.download_file(base_path, hour_subdir, file_name, local_path):
-                    if extract_files:
-                        client.extract_and_convert(local_path, convert_to_rnx)
+            # 7. Prepare download directory
+            station_folder = station if station else "ALLSTATIONS"
+            download_dir = os.path.join("downloads", station_folder, year, doy)
+            os.makedirs(download_dir, exist_ok=True)
+            
+            print(f"Processing hours: {valid_hours}")
+            print(f"Files will be saved to: {download_dir}\n")
 
-    # 8. Cleanup
-    client.close()
-    print("\nAll operations completed successfully.")
+            # 8. Download files
+            success = True
+            for hour_subdir in valid_hours:
+                try:
+                    crx_files = client.list_crx_files(base_path, hour_subdir, 
+                                                    station_filter=station if station else None)
+                    if not crx_files:
+                        print(f"No .crx.gz files found in {base_path}/{hour_subdir} "
+                              f"(filter={station or 'None'})")
+                        continue
+
+                    local_hour_dir = os.path.join(download_dir, hour_subdir)
+                    os.makedirs(local_hour_dir, exist_ok=True)
+
+                    for file_name in crx_files:
+                        local_path = os.path.join(local_hour_dir, file_name)
+                        # Eğer .rnx dosyası zaten varsa, bu dosyayı atla
+                        rnx_path = local_path.replace('.crx.gz', '.rnx')
+                        if os.path.exists(rnx_path):
+                            print(f"Skipping {file_name} - RINEX file already exists: {os.path.basename(rnx_path)}")
+                            continue
+                            
+                        # Eğer .crx dosyası varsa, onu da kontrol et
+                        crx_path = local_path.replace('.gz', '')
+                        if os.path.exists(crx_path):
+                            print(f"Skipping {file_name} - CRX file already exists: {os.path.basename(crx_path)}")
+                            continue
+
+                        if client.download_file(base_path, hour_subdir, file_name, local_path):
+                            if extract_files:
+                                client.extract_and_convert(local_path, convert_to_rnx)
+                        else:
+                            success = False
+                            break
+
+                except Exception as e:
+                    print(f"Error processing hour {hour_subdir}: {e}")
+                    success = False
+                    break
+
+            if success:
+                doy_index += 1  # Move to next DOY only if current one was successful
+            else:
+                print(f"Errors occurred while processing DOY {doy}. Will retry after 30 seconds...")
+                client.close()
+                time.sleep(30)
+                continue
+
+        except Exception as e:
+            print(f"Error processing DOY {doy}: {e}")
+            client.close()
+            time.sleep(30)
+            continue
+        
+        finally:
+            client.close()
+
+    print("\nAll operations completed.")
 
 
 if __name__ == "__main__":

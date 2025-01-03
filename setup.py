@@ -23,7 +23,7 @@ def get_package_data():
 
 setup(
     name="cddis-highrate-downloader",
-    version="0.1.0",
+    version="1.0.1",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     package_data={
