@@ -228,7 +228,11 @@ def validate_range(value: str, min_val: int, max_val: int, name: str) -> List[st
             return []
             
         # Generate list of values with leading zeros
-        return [f"{i:02d}" for i in range(start, end + 1)]
+        # Use 3 digits for DOY, 2 digits for others
+        if name == "DOY":
+            return [f"{i:03d}" for i in range(start, end + 1)]
+        else:
+            return [f"{i:02d}" for i in range(start, end + 1)]
         
     except ValueError:
         print(f"Invalid {name} format. Use single value or range (e.g., 1-5)")
@@ -247,7 +251,7 @@ def main():
     # 1. User input
     station = input("Enter station name (e.g., BRST00FRA) or press Enter for ALL: ").strip()
     year = input("Enter year (e.g., 2024): ").strip()
-    doy_input = input("Enter DOY (e.g., 300 or 300-305): ").strip()
+    doy_input = input("Enter DOY (e.g., 001 or 001-030): ").strip()
     subfolder = input("Enter subfolder (e.g., 24d, 24o): ").strip()
     hour_input = input("Enter hour (e.g., 00 or 00-05) or press Enter for ALL: ").strip()
     
