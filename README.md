@@ -62,8 +62,14 @@ The tool will prompt you for the following information:
    - Enter the year (e.g., "2024")
 
 3. **DOY (Day of Year)**:
-   - Enter a single day (e.g., "300")
-   - Or enter a range (e.g., "300-305")
+   - Enter a single day in any format:
+     - Single digit (e.g., "1" → processed as "001")
+     - Two digits (e.g., "01" → processed as "001")
+     - Three digits (e.g., "001")
+   - Or enter a range in any format:
+     - "1-30" → processed as "001-030"
+     - "01-30" → processed as "001-030"
+     - "001-030"
 
 4. **Subfolder**:
    - Enter the subfolder name (e.g., "24d" or "24o")
@@ -83,7 +89,7 @@ The tool will prompt you for the following information:
 $ cddis-download
 Enter station name (e.g., BRST00FRA) or press Enter for ALL: BRST00FRA
 Enter year (e.g., 2024): 2024
-Enter DOY (e.g., 300 or 300-305): 300-302
+Enter DOY (e.g., 001 or 001-030): 001-003
 Enter subfolder (e.g., 24d, 24o): 24d
 Enter hour (e.g., 00 or 00-05) or press Enter for ALL: 00-03
 Extract downloaded files? (y/N): y
@@ -144,7 +150,7 @@ Version 1.0.1 includes improved connection handling:
    - Check file permissions
 
 3. **Invalid Input Formats**:
-   - DOY must be between 001-366
+   - DOY must be between 001-366 (can be entered as 1, 01, or 001)
    - Hours must be between 00-23
    - Use correct station name format
 
@@ -173,9 +179,8 @@ If you use this tool in your research, please cite:
 @software{cddis_highrate_downloader,
     author = {Altuntas, Cemali},
     title = {CDDIS High-Rate GNSS Data Downloader},
-    version = {1.0.1},
+    version = {1.0.2},
     year = {2025},
     url = {https://github.com/cemalialtuntas/cddis-highrate-downloader}
 }
 ```
-
