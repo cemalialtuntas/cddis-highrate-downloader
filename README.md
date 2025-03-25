@@ -2,8 +2,6 @@
 
 A Python-based tool to easily bulk-download high-rate GNSS data from NASA's CDDIS archive. This tool supports downloading, extracting, and converting GNSS data files with various filtering options.
 
-![assets_task_01jq7v5ar8e55tnnnhfetef5we_img_0](https://github.com/user-attachments/assets/2c4c30e3-8089-492f-9207-72f272ba52f3)
-
 
 ## Features
 
